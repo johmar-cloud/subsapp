@@ -163,6 +163,30 @@ function getCurrentTimeInTimezone(offsetMinutes) {
   return `${hh.toString().padStart(2, "0")}:${mm.toString().padStart(2, "0")}`;
 }
 
+function getCurrentMinutesInTimezone(offsetMinutes) {
+  const now = new Date();
+  const utcMinutesTotal = now.getUTCHours() * 60 + now.getUTCMinutes();
+  let tzMinutesTotal = utcMinutesTotal + offsetMinutes;
+
+  const MINUTES_PER_DAY = 1440;
+  tzMinutesTotal = ((tzMinutesTotal % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
+
+  return tzMinutesTotal;
+}
+
+function parseTimeToMinutes(hhmm) {
+  if (!hhmm) return null;
+  const [hoursStr, minutesStr] = hhmm.split(":");
+  const hours = Number.parseInt(hoursStr, 10);
+  const minutes = Number.parseInt(minutesStr, 10);
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+}
+
 // ---------------------------------------------------------------------------
 // APP
 // ---------------------------------------------------------------------------
@@ -272,9 +296,15 @@ export default function App() {
       return;
     }
 
-    console.log('✅ Reminder checker active. Checking every minute...');
+    const targetMinutes = parseTimeToMinutes(userProfile.reminderTime);
+    if (targetMinutes == null) {
+      console.log('⏭️ Reminder check skipped: invalid reminder time');
+      return;
+    }
 
-    const interval = setInterval(() => {
+    console.log('✅ Reminder checker active. Monitoring reminder schedule...');
+
+    const checkAndSendReminders = () => {
       const now = new Date();
       const todayStr = now.toISOString().slice(0, 10);
 
@@ -283,12 +313,14 @@ export default function App() {
         return;
       }
 
+      const currentMinutes = getCurrentMinutesInTimezone(tz.offsetMinutes);
+      if (currentMinutes < targetMinutes) {
+        return;
+      }
+
       const currentHHMM = getCurrentTimeInTimezone(tz.offsetMinutes);
       console.log(`⏰ Current time in ${tz.label}: ${currentHHMM}, Target: ${userProfile.reminderTime}`);
-      
-      if (currentHHMM !== userProfile.reminderTime) return;
-
-      console.log('🎯 Reminder time reached! Checking subscriptions...');
+      console.log('🎯 Reminder window reached! Checking subscriptions...');
 
       const updatedReminders = { ...remindersSent };
       let changed = false;
@@ -340,6 +372,12 @@ export default function App() {
         setRemindersSent(updatedReminders);
       }
       setDailyMeta({ lastRunDate: todayStr });
+    };
+
+    checkAndSendReminders();
+
+    const interval = setInterval(() => {
+      checkAndSendReminders();
     }, 60 * 1000);
 
     return () => {
@@ -598,7 +636,7 @@ export default function App() {
             <table className="min-w-full">
               <thead>
                 <tr className="bg-slate-900/50 border-b border-slate-800/80">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider min-w-[24rem]">Name</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Category</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Description</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Cost</th>
@@ -638,7 +676,7 @@ export default function App() {
                         sub.status === "Cancelled" ? "opacity-50" : ""
                       }`}
                     >
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 align-top min-w-[24rem]">
                         <div className="space-y-2">
                           <select
                             className="w-full rounded-lg bg-slate-950/80 border border-slate-700/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
