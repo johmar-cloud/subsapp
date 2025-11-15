@@ -285,6 +285,11 @@ export default function App() {
 
   // Daily reminder check
   useEffect(() => {
+    if (!emailJsLoaded) {
+      console.log('⏳ Reminder check paused: waiting for EmailJS to load');
+      return;
+    }
+
     if (!userProfile.email || !userProfile.reminderTime || !userProfile.timezoneId) {
       console.log('⏭️ Reminder check skipped: missing email, time, or timezone');
       return;
@@ -370,8 +375,8 @@ export default function App() {
 
       if (changed) {
         setRemindersSent(updatedReminders);
+        setDailyMeta({ lastRunDate: todayStr });
       }
-      setDailyMeta({ lastRunDate: todayStr });
     };
 
     checkAndSendReminders();
@@ -636,7 +641,7 @@ export default function App() {
             <table className="min-w-full">
               <thead>
                 <tr className="bg-slate-900/50 border-b border-slate-800/80">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider min-w-[24rem]">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider min-w-[16rem]">Name</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Category</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Description</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Cost</th>
@@ -676,7 +681,7 @@ export default function App() {
                         sub.status === "Cancelled" ? "opacity-50" : ""
                       }`}
                     >
-                      <td className="px-4 py-3 align-top min-w-[24rem]">
+                      <td className="px-4 py-3 align-top min-w-[16rem]">
                         <div className="space-y-2">
                           <select
                             className="w-full rounded-lg bg-slate-950/80 border border-slate-700/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
