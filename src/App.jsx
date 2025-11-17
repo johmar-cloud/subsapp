@@ -25,7 +25,6 @@ const CURRENCIES = ["SGD", "USD", "CHF", "EUR", "JPY", "CAD"];
 
 const BILLING_FREQUENCIES = ["Weekly", "Monthly", "Yearly", "Bi-yearly"];
 
-const SUB_STATUSES = ["Active", "Cancelled"];
 
 const STORAGE_KEY_SUBS = "subscription-manager:subscriptions";
 const STORAGE_KEY_PROFILE = "subscription-manager:userProfile";
@@ -606,7 +605,17 @@ export default function App() {
           <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 backdrop-blur-sm rounded-2xl p-6 border border-emerald-500/20">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-400 font-medium">Monthly Total</p>
+                <div className="flex items-center gap-2 text-sm text-slate-400 font-medium">
+                  <span>Monthly Total</span>
+                  <div className="relative group inline-flex items-center justify-center">
+                    <span className="w-5 h-5 flex items-center justify-center rounded-full bg-emerald-500/20 text-emerald-200 text-[10px] font-semibold border border-emerald-400/40 cursor-default">
+                      i
+                    </span>
+                    <div className="pointer-events-none absolute left-0 top-6 z-20 w-64 rounded-lg border border-emerald-500/30 bg-slate-900/90 px-3 py-2 text-left text-xs text-slate-200 opacity-0 shadow-xl transition-opacity duration-200 group-hover:opacity-100">
+                      Monthly total prorates longer billing cycles into monthly equivalents (weekly × 52 ÷ 12, yearly ÷ 12, bi-yearly ÷ 24).
+                    </div>
+                  </div>
+                </div>
                 <p className="text-3xl font-bold text-white mt-1">
                   {monthlyTotal ? `${monthlyTotal.toFixed(0)} ${baseCurrency}` : "—"}
                 </p>
@@ -658,8 +667,7 @@ export default function App() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Description</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Cost</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Frequency</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Start</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Last payment</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Next Renewal</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -807,22 +815,6 @@ export default function App() {
                           {BILLING_FREQUENCIES.map((f) => (
                             <option key={f} value={f}>
                               {f}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <select
-                          className="w-full rounded-lg bg-slate-950/80 border border-slate-700/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
-                          value={sub.status}
-                          onChange={(e) =>
-                            updateSubscription(sub.id, { status: e.target.value })
-                          }
-                        >
-                          {SUB_STATUSES.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
                             </option>
                           ))}
                         </select>
