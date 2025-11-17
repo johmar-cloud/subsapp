@@ -202,7 +202,7 @@ export default function App() {
     fxManual: {},
   });
   const [remindersSent, setRemindersSent] = useState({});
-  const [dailyMeta, setDailyMeta] = useState({ lastRunDate: "" });
+  const [dailyMeta, setDailyMeta] = useState({ lastRunDate: "", lastRunMinutes: null });
   const [view, setView] = useState("table");
   const [emailJsLoaded, setEmailJsLoaded] = useState(false);
   const [lastEmailStatus, setLastEmailStatus] = useState("");
@@ -229,8 +229,10 @@ export default function App() {
     const reminders = JSON.parse(localStorage.getItem(STORAGE_KEY_REMINDERS) || "{}");
     setRemindersSent(reminders);
 
-    const dm = JSON.parse(localStorage.getItem(STORAGE_KEY_DAILY) || '{"lastRunDate":""}');
-    setDailyMeta(dm);
+    const dm = JSON.parse(
+      localStorage.getItem(STORAGE_KEY_DAILY) || '{"lastRunDate":"","lastRunMinutes":null}'
+    );
+    setDailyMeta({ lastRunDate: dm.lastRunDate || "", lastRunMinutes: dm.lastRunMinutes ?? null });
   }, []);
 
   // Persist
@@ -312,14 +314,14 @@ export default function App() {
     const checkAndSendReminders = () => {
       const now = new Date();
       const todayStr = now.toISOString().slice(0, 10);
-
-      if (dailyMeta.lastRunDate === todayStr) {
-        console.log('⏭️ Already sent reminders today');
-        return;
-      }
+      const lastRunMinutes =
+        typeof dailyMeta.lastRunMinutes === "number" ? dailyMeta.lastRunMinutes : null;
 
       const currentMinutes = getCurrentMinutesInTimezone(tz.offsetMinutes);
-      if (currentMinutes < targetMinutes) {
+      const alreadyHandledToday =
+        dailyMeta.lastRunDate === todayStr && lastRunMinutes != null && lastRunMinutes >= targetMinutes;
+
+      if (currentMinutes < targetMinutes || alreadyHandledToday) {
         return;
       }
 
@@ -375,7 +377,7 @@ export default function App() {
 
       if (changed) {
         setRemindersSent(updatedReminders);
-        setDailyMeta({ lastRunDate: todayStr });
+        setDailyMeta({ lastRunDate: todayStr, lastRunMinutes: currentMinutes });
       }
     };
 
@@ -385,8 +387,17 @@ export default function App() {
       checkAndSendReminders();
     }, 60 * 1000);
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        checkAndSendReminders();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [
     subscriptions,
@@ -395,6 +406,7 @@ export default function App() {
     userProfile.timezoneId,
     remindersSent,
     dailyMeta.lastRunDate,
+    dailyMeta.lastRunMinutes,
     emailJsLoaded,
   ]);
 
@@ -1025,7 +1037,8 @@ export default function App() {
                 </p>
               )}
               <p className="text-xs text-slate-500 mt-2">
-                Click "Send Test Email" to verify your email is working correctly. Check your inbox (and spam folder).
+                This in-browser app will wake up at your selected time while it is open and connected. If the tab is closed
+                or the device is offline, reminders will be sent as soon as you reopen the app after that time.
               </p>
             </div>
 
